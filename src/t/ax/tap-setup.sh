@@ -22,7 +22,7 @@
 
 # Check that we are running from a proper directory: last thing we want
 # is to overwrite some random user files.
-test -f ../../automake && test -f ../../runtest && test -d ../../t \
+test -f ../../bin/automake && test -f ../../runtest && test -d ../../t \
   || fatal_ "running from a wrong directory"
 
 test ! -f Makefile.am || mv Makefile.am Makefile.am~ \
@@ -36,7 +36,7 @@ fetch_tap_driver
 if test -f Makefile.am~; then
   mv -f Makefile.am~ Makefile.am \
     || fatal_ "failed to restore Makefile.am"
-  echo 'TEST_LOG_DRIVER = $(PERL) $(srcdir)/tap-driver' >> Makefile.am \
+  echo 'TEST_LOG_DRIVER = $(srcdir)/tap-driver' >> Makefile.am \
     || fatal_ "failed to update Makefile.am"
   $AUTOMAKE Makefile \
     || fatal_ "failed to remake Makefile.in"

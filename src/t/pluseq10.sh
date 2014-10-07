@@ -38,9 +38,8 @@ foo += b0.h \
   b1.h
 endif
 
-.PHONY: print
-print:
-	@echo BEG: $(foo) :END
+test:
+	is $(foo) == 0.h a0.h a1.h a2.h a3.h
 END
 
 $ACLOCAL
@@ -48,8 +47,6 @@ $AUTOCONF
 $AUTOMAKE
 
 ./configure
-$MAKE print >stdout || { cat stdout; exit 1; }
-cat stdout
-$FGREP 'BEG: 0.h a0.h a1.h a2.h a3.h :END' stdout
+$MAKE test
 
 :

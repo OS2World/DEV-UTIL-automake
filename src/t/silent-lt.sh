@@ -26,7 +26,6 @@ cat >>configure.ac <<'EOF'
 AC_CONFIG_FILES([sub/Makefile])
 AC_PROG_CC
 AM_PROG_AR
-AM_PROG_CC_C_O
 AC_PROG_LIBTOOL
 AC_OUTPUT
 EOF
@@ -67,8 +66,7 @@ for config_args in \
 
   ./configure --enable-silent-rules $config_args
 
-  $MAKE >stdout || { cat stdout; exit 1; }
-  cat stdout
+  run_make -O
 
   $EGREP ' (-c|-o)' stdout && exit 1
   grep 'mv ' stdout && exit 1
@@ -82,8 +80,7 @@ for config_args in \
   grep ' CCLD .*bla' stdout
 
   $MAKE clean
-  $MAKE V=1 >stdout || { cat stdout; exit 1; }
-  cat stdout
+  run_make -O V=1
   grep ' -c' stdout
   grep ' -o libfoo' stdout
   # The libtool command line can contain e.g. a '--tag=CC' option.

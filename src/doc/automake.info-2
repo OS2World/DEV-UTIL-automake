@@ -1,7 +1,7 @@
-This is automake.info, produced by makeinfo version 5.1 from
+This is automake.info, produced by makeinfo version 5.2 from
 automake.texi.
 
-This manual is for GNU Automake (version 1.13.1, 1 January 2013), a
+This manual is for GNU Automake (version 1.14.1, 6 November 2013), a
 program that creates GNU standards-compliant Makefiles from template
 files.
 
@@ -34,22 +34,20 @@ File: automake.info,  Node: The Types of Distributions,  Prev: Checking the Dist
 Automake generates rules to provide archives of the project for
 distributions in various formats.  Their targets are:
 
+'dist-gzip'
+     Generate a 'gzip' tar archive of the distribution.  This is the
+     only format enabled by default.
+
 'dist-bzip2'
-     Generate a bzip2 tar archive of the distribution.  bzip2 archives
+     Generate a 'bzip2' tar archive of the distribution.  bzip2 archives
      are frequently smaller than gzipped archives.  By default, this
      rule makes 'bzip2' use a compression option of '-9'.  To make it
      use a different one, set the 'BZIP2' environment variable.  For
      example, 'make dist-bzip2 BZIP2=-7'.
 
-'dist-gzip'
-     Generate a gzip tar archive of the distribution.
-
 'dist-lzip'
      Generate an 'lzip' tar archive of the distribution.  'lzip'
      archives are frequently smaller than 'bzip2'-compressed archives.
-
-'dist-shar'
-     Generate a shar archive of the distribution.
 
 'dist-xz'
      Generate an 'xz' tar archive of the distribution.  'xz' archives
@@ -60,14 +58,24 @@ distributions in various formats.  Their targets are:
      but with a progress indicator: 'make dist-xz XZ_OPT=-ve'.
 
 'dist-zip'
-     Generate a zip archive of the distribution.
+     Generate a 'zip' archive of the distribution.
 
 'dist-tarZ'
-     Generate a compressed tar archive of the distribution.
+     Generate a tar archive of the distribution, compressed with the
+     historical (and obsolescent) program 'compress'.  This option is
+     deprecated, and it and the corresponding functionality will be
+     removed altogether in Automake 2.0.
+
+'dist-shar'
+     Generate a 'shar' archive of the distribution.  This format archive
+     is obsolescent, and use of this option is deprecated.  It and the
+     corresponding functionality will be removed altogether in Automake
+     2.0.
 
    The rule 'dist' (and its historical synonym 'dist-all') will create
-archives in all the enabled formats, *note Options::.  By default, only
-the 'dist-gzip' target is hooked to 'dist'.
+archives in all the enabled formats (*note List of Automake options::
+for how to change this list).  By default, only the 'dist-gzip' target
+is hooked to 'dist'.
 
 
 File: automake.info,  Node: Tests,  Next: Rebuilding,  Prev: Dist,  Up: Top
@@ -163,7 +171,7 @@ File: automake.info,  Node: Simple Tests,  Next: Custom Test Drivers,  Prev: Gen
 * Menu:
 
 * Scripts-based Testsuites::    Automake-specific concepts and terminology
-* Serial Test Harness::         Older (and obsolescent) serial test harness
+* Serial Test Harness::         Older (and discouraged) serial test harness
 * Parallel Test Harness::       Generic concurrent test harness
 
 
@@ -309,12 +317,16 @@ cases.
 
 File: automake.info,  Node: Serial Test Harness,  Next: Parallel Test Harness,  Prev: Scripts-based Testsuites,  Up: Simple Tests
 
-15.2.2 Older (and obsolescent) serial test harness
+15.2.2 Older (and discouraged) serial test harness
 --------------------------------------------------
 
-_This harness is obsolescent_, and kept for backward-compatibility
-reasons only.  The user is strongly advised to just use the parallel
-test harness instead (*note Parallel Test Harness::).
+First, note that today the use of this harness is strongly discouraged
+in favour of the parallel test harness (*note Parallel Test Harness::).
+Still, there are _few_ situations when the advantages offered by the
+parallel harness are irrelevant, and when test concurrency can even
+cause tricky problems.  In those cases, it might make sense to still use
+the serial harness, for simplicity and reliability (we still suggest
+trying to give the parallel harness a shot though).
 
    The serial test harness is enabled by the Automake option
 'serial-tests'.  It operates by simply running the tests serially, one
@@ -355,9 +367,6 @@ files, concurrent execution of tests with 'make -j', specification of
 inter-test dependencies, lazy reruns of tests that have not completed in
 a prior run, and hard errors for exceptional failures.
 
-   This harness is still somewhat experimental and may undergo changes
-in order to satisfy additional portability requirements.
-
    The parallel test harness operates by defining a set of 'make' rules
 that run the test scripts listed in 'TESTS', and, for each such script,
 save its output in a corresponding '.log' file and its results (and
@@ -392,6 +401,11 @@ in which case any extension listed in it must be constituted by a dot,
 followed by a non-digit alphabetic character, followed by any number of
 alphabetic characters.  For example, '.sh', '.T' and '.t1' are valid
 extensions, while '.x-y', '.6c' and '.t.1' are not.
+
+   It is important to note that, due to current limitations (unlikely to
+be lifted), configure substitutions in the definition of 'TESTS' can
+only work if they will expand to a list of tests that have a suffix
+listed in 'TEST_EXTENSIONS'.
 
    For tests that match an extension '.EXT' listed in 'TEST_EXTENSIONS',
 you can provide a custom "test runner" using the variable
@@ -1130,8 +1144,23 @@ therefore carry any non-standard source that may be read as a side
 effect of running 'configure', like 'version.sh' in the example above.
 
    Speaking of 'version.sh' scripts, we recommend against them today.
-We recommend that 'version.sh' be replaced by an M4 file that is
-included by 'configure.ac':
+They are mainly used when the version of a package is updated
+automatically by a script (e.g., in daily builds).  Here is what some
+old-style 'configure.ac's may look like:
+
+     AC_INIT
+     . $srcdir/version.sh
+     AM_INIT_AUTOMAKE([name], $VERSION_NUMBER)
+     ...
+
+Here, 'version.sh' is a shell fragment that sets 'VERSION_NUMBER'.  The
+problem with this example is that 'automake' cannot track dependencies
+(listing 'version.sh' in 'CONFIG_STATUS_DEPENDENCIES', and distributing
+this file is up to the user), and that it uses the obsolete form of
+'AC_INIT' and 'AM_INIT_AUTOMAKE'.  Upgrading to the new syntax is not
+straightforward, because shell variables are not allowed in 'AC_INIT''s
+arguments.  We recommend that 'version.sh' be replaced by an M4 file
+that is included by 'configure.ac':
 
      m4_include([version.m4])
      AC_INIT([name], VERSION_NUMBER)
@@ -1141,7 +1170,10 @@ included by 'configure.ac':
 Here 'version.m4' could contain something like
 'm4_define([VERSION_NUMBER], [1.2])'.  The advantage of this second form
 is that 'automake' will take care of the dependencies when defining the
-rebuild rule, and will also distribute the file automatically.
+rebuild rule, and will also distribute the file automatically.  An
+inconvenience is that 'autoconf' will now be rerun each time the version
+number is bumped, when only 'configure' had to be rerun in the previous
+setup.
 
 
 File: automake.info,  Node: Options,  Next: Miscellaneous,  Prev: Rebuilding,  Up: Top
@@ -1222,14 +1254,21 @@ File: automake.info,  Node: List of Automake options,  Prev: Options generalitie
 'dist-lzip'
      Hook 'dist-lzip' to 'dist'.
 
-'dist-shar'
-     Hook 'dist-shar' to 'dist'.
+'dist-xz'
+     Hook 'dist-xz' to 'dist'.
 
 'dist-zip'
      Hook 'dist-zip' to 'dist'.
 
+'dist-shar'
+     Hook 'dist-shar' to 'dist'.  Use of this option is deprecated, as
+     the 'shar' format is obsolescent and problematic.  Support for it
+     will be removed altogether in Automake 2.0.
+
 'dist-tarZ'
-     Hook 'dist-tarZ' to 'dist'.
+     Hook 'dist-tarZ' to 'dist'.  Use of this option is deprecated, as
+     the 'compress' program is obsolete.  Support for it will be removed
+     altogether in Automake 2.0.
 
 'filename-length-max=99'
      Abort if file names longer than 99 characters are found during
@@ -1239,6 +1278,11 @@ File: automake.info,  Node: List of Automake options,  Prev: Options generalitie
      or as an argument of 'AM_INIT_AUTOMAKE' in 'configure.ac', it will
      be ignored otherwise.  It will also be ignored in sub-packages of
      nested packages (*note Subpackages::).
+
+'info-in-builddir'
+     Instruct Automake to place the generated '.info' files in the
+     'builddir' rather than in the 'srcdir'.  Note that this might make
+     VPATH builds with some non-GNU make implementations more brittle.
 
 'no-define'
      This option is meaningful only when passed as an argument to
@@ -1335,9 +1379,6 @@ File: automake.info,  Node: List of Automake options,  Prev: Options generalitie
      subdirectory of the source file.  For instance, if the source file
      is 'subdir/file.cxx', then the output file would be
      'subdir/file.o'.
-
-     In order to use this option with C sources, you should add
-     'AM_PROG_CC_C_O' to 'configure.ac'.
 
 'tar-v7'
 'tar-ustar'
@@ -1550,6 +1591,22 @@ condition applies to the entire contents of that fragment.
 
    Makefile fragments included this way are always distributed because
 they are needed to rebuild 'Makefile.in'.
+
+   Inside a fragment, the construct '%reldir%' is replaced with the
+directory of the fragment relative to the base 'Makefile.am'.
+Similarly, '%canon_reldir%' is replaced with the canonicalized (*note
+Canonicalization::) form of '%reldir%'.  As a convenience, '%D%' is a
+synonym for '%reldir%', and '%C%' is a synonym for '%canon_reldir%'.
+
+   A special feature is that if the fragment is in the same directory as
+the base 'Makefile.am' (i.e., '%reldir%' is '.'), then '%reldir%' and
+'%canon_reldir%' will expand to the empty string as well as eat, if
+present, a following slash or underscore respectively.
+
+   Thus, a makefile fragment might look like this:
+
+     bin_PROGRAMS += %reldir%/mumble
+     %canon_reldir%_mumble_SOURCES = %reldir%/one.c
 
 
 File: automake.info,  Node: Conditionals,  Next: Silencing Make,  Prev: Include,  Up: Top
@@ -2534,9 +2591,9 @@ All Files in CVS
           sleep 1
           # autoconf-generated configure depends on aclocal.m4 and on
           # configure.ac
-          configure config.h.in
+          touch configure
           # so does autoheader-generated config.h.in
-          configure config.h.in
+          touch config.h.in
           # and all the automake-generated Makefile.in files
           touch `find . -name Makefile.in -print`
           # finally, the makeinfo-generated '.info' files depend on the
@@ -4225,11 +4282,10 @@ B.1 Macro Index
 * AC_LIBSOURCES:                         Optional.            (line  67)
 * AC_OUTPUT:                             Requirements.        (line  15)
 * AC_PREREQ:                             Extending aclocal.   (line  36)
-* AC_PROG_CC_C_O:                        Public Macros.       (line  77)
 * AC_PROG_CXX:                           Optional.            (line  85)
 * AC_PROG_F77:                           Optional.            (line  97)
 * AC_PROG_FC:                            Optional.            (line 112)
-* AC_PROG_LEX:                           Public Macros.       (line  83)
+* AC_PROG_LEX:                           Public Macros.       (line  92)
 * AC_PROG_LEX <1>:                       Optional.            (line 127)
 * AC_PROG_LIBTOOL:                       Optional.            (line 117)
 * AC_PROG_OBJC:                          Optional.            (line  89)
@@ -4257,24 +4313,24 @@ B.1 Macro Index
 * AM_MAINTAINER_MODE <1>:                maintainer-mode.     (line  37)
 * AM_MAINTAINER_MODE([DEFAULT-MODE]):    Optional.            (line 172)
 * AM_MAKE_INCLUDE:                       Private Macros.      (line  20)
-* AM_MISSING_PROG:                       Public Macros.       (line  99)
+* AM_MISSING_PROG:                       Public Macros.       (line 108)
 * AM_OUTPUT_DEPENDENCY_COMMANDS:         Private Macros.      (line  15)
-* AM_PATH_LISPDIR:                       Public Macros.       (line  50)
+* AM_PATH_LISPDIR:                       Public Macros.       (line  58)
 * AM_PATH_PYTHON:                        Python.              (line  28)
-* AM_PROG_AR:                            Public Macros.       (line  65)
-* AM_PROG_AS:                            Public Macros.       (line  72)
-* AM_PROG_CC_C_O:                        Public Macros.       (line  77)
-* AM_PROG_GCJ:                           Public Macros.       (line  88)
+* AM_PROG_AR:                            Public Macros.       (line  73)
+* AM_PROG_AS:                            Public Macros.       (line  80)
+* AM_PROG_CC_C_O:                        Public Macros.       (line  85)
+* AM_PROG_GCJ:                           Public Macros.       (line  97)
 * AM_PROG_INSTALL_STRIP:                 Private Macros.      (line  25)
-* AM_PROG_LEX:                           Public Macros.       (line  83)
+* AM_PROG_LEX:                           Public Macros.       (line  92)
 * AM_PROG_MKDIR_P:                       Obsolete Macros.     (line  14)
-* AM_PROG_UPC:                           Public Macros.       (line  93)
+* AM_PROG_UPC:                           Public Macros.       (line 102)
 * AM_PROG_VALAC:                         Vala Support.        (line  20)
 * AM_SANITY_CHECK:                       Private Macros.      (line  30)
 * AM_SET_DEPDIR:                         Private Macros.      (line  13)
-* AM_SILENT_RULES:                       Public Macros.       (line 107)
+* AM_SILENT_RULES:                       Public Macros.       (line 116)
 * AM_SUBST_NOTMAKE(VAR):                 Optional.            (line 180)
-* AM_WITH_DMALLOC:                       Public Macros.       (line 111)
+* AM_WITH_DMALLOC:                       Public Macros.       (line 120)
 * m4_include:                            Basics of Distribution.
                                                               (line  13)
 * m4_include <1>:                        Optional.            (line 190)
@@ -4293,15 +4349,15 @@ B.2 Variable Index
 * _LIBRARIES:                            A Library.           (line   6)
 * _LISP:                                 Emacs Lisp.          (line   6)
 * _LOG_COMPILE:                          Parallel Test Harness.
-                                                              (line  50)
+                                                              (line  52)
 * _LOG_COMPILER:                         Parallel Test Harness.
-                                                              (line  50)
+                                                              (line  52)
 * _LOG_DRIVER:                           Declaring Custom Test Drivers.
                                                               (line   6)
 * _LOG_DRIVER_FLAGS:                     Declaring Custom Test Drivers.
                                                               (line   6)
 * _LOG_FLAGS:                            Parallel Test Harness.
-                                                              (line  50)
+                                                              (line  52)
 * _LTLIBRARIES:                          Libtool Libraries.   (line   6)
 * _MANS:                                 Man Pages.           (line   6)
 * _PROGRAMS:                             Uniform.             (line  11)
@@ -4312,7 +4368,7 @@ B.2 Variable Index
 * _SOURCES <1>:                          Program Sources.     (line  33)
 * _SOURCES <2>:                          Default _SOURCES.    (line   6)
 * _TEXINFOS:                             Texinfo.             (line   6)
-* _TEXINFOS <1>:                         Texinfo.             (line  59)
+* _TEXINFOS <1>:                         Texinfo.             (line  65)
 * ALLOCA:                                LTLIBOBJS.           (line   6)
 * ALLOCA <1>:                            LIBOBJS.             (line   6)
 * AM_CCASFLAGS:                          Assembly Support.    (line  10)
@@ -4333,13 +4389,13 @@ B.2 Variable Index
 * AM_EXT_LOG_DRIVER_FLAGS:               Declaring Custom Test Drivers.
                                                               (line   6)
 * AM_EXT_LOG_FLAGS:                      Parallel Test Harness.
-                                                              (line  50)
+                                                              (line  52)
 * AM_FCFLAGS:                            Fortran 9x Support.  (line  22)
 * AM_FFLAGS:                             Fortran 77 Support.  (line  22)
 * AM_GCJFLAGS:                           Java Support with gcj.
                                                               (line  26)
 * AM_INSTALLCHECK_STD_OPTIONS_EXEMPT:    List of Automake options.
-                                                              (line 120)
+                                                              (line 132)
 * AM_JAVACFLAGS:                         Java.                (line  42)
 * AM_LDFLAGS:                            Linking.             (line  10)
 * AM_LDFLAGS <1>:                        Program Variables.   (line  59)
@@ -4348,10 +4404,10 @@ B.2 Variable Index
 * AM_LOG_DRIVER_FLAGS:                   Declaring Custom Test Drivers.
                                                               (line   6)
 * AM_LOG_FLAGS:                          Parallel Test Harness.
-                                                              (line  50)
+                                                              (line  52)
 * AM_MAKEFLAGS:                          Subdirectories.      (line  29)
-* AM_MAKEINFOFLAGS:                      Texinfo.             (line 109)
-* AM_MAKEINFOHTMLFLAGS:                  Texinfo.             (line 110)
+* AM_MAKEINFOFLAGS:                      Texinfo.             (line 115)
+* AM_MAKEINFOHTMLFLAGS:                  Texinfo.             (line 116)
 * AM_OBJCFLAGS:                          Objective C Support. (line  22)
 * AM_OBJCXXFLAGS:                        Objective C++ Support.
                                                               (line  22)
@@ -4363,7 +4419,7 @@ B.2 Variable Index
                                                               (line  94)
 * AM_UPCFLAGS:                           Unified Parallel C Support.
                                                               (line  21)
-* AM_UPDATE_INFO_DIR:                    Texinfo.             (line  86)
+* AM_UPDATE_INFO_DIR:                    Texinfo.             (line  92)
 * 'AM_V':                                Automake Silent Rules.
                                                               (line 120)
 * AM_VALAFLAGS:                          Vala Support.        (line  41)
@@ -4372,7 +4428,7 @@ B.2 Variable Index
 * 'AM_V_GEN':                            Automake Silent Rules.
                                                               (line 120)
 * AM_YFLAGS:                             Yacc and Lex.        (line  37)
-* AR:                                    Public Macros.       (line  65)
+* AR:                                    Public Macros.       (line  73)
 * AUTOCONF:                              automake Invocation. (line  28)
 * AUTOM4TE:                              aclocal Invocation.  (line  44)
 * AUTOMAKE_JOBS:                         automake Invocation. (line 174)
@@ -4385,11 +4441,11 @@ B.2 Variable Index
 * build_triplet:                         Optional.            (line  14)
 * BUILT_SOURCES:                         Sources.             (line  27)
 * BZIP2:                                 The Types of Distributions.
-                                                              (line   9)
+                                                              (line  13)
 * CC:                                    Program Variables.   (line  12)
-* CCAS:                                  Public Macros.       (line  72)
+* CCAS:                                  Public Macros.       (line  80)
 * CCAS <1>:                              Assembly Support.    (line  10)
-* CCASFLAGS:                             Public Macros.       (line  72)
+* CCASFLAGS:                             Public Macros.       (line  80)
 * CCASFLAGS <1>:                         Assembly Support.    (line  10)
 * CFLAGS:                                Program Variables.   (line  12)
 * check_:                                Uniform.             (line  96)
@@ -4423,17 +4479,17 @@ B.2 Variable Index
 * DISTCHECK_CONFIGURE_FLAGS:             Checking the Distribution.
                                                               (line  21)
 * distcleancheck_listfiles:              Checking the Distribution.
-                                                              (line  60)
+                                                              (line  63)
 * distcleancheck_listfiles <1>:          Errors with distclean.
                                                               (line 112)
 * DISTCLEANFILES:                        Clean.               (line  13)
 * DISTCLEANFILES <1>:                    Checking the Distribution.
-                                                              (line  60)
+                                                              (line  63)
 * distdir:                               The dist Hook.       (line  33)
 * distdir <1>:                           Third-Party Makefiles.
                                                               (line  25)
 * distuninstallcheck_listfiles:          Checking the Distribution.
-                                                              (line  96)
+                                                              (line  99)
 * dist_:                                 Alternative.         (line  29)
 * dist_ <1>:                             Fine-grained Distribution Control.
                                                               (line   6)
@@ -4442,9 +4498,9 @@ B.2 Variable Index
 * DIST_SUBDIRS:                          Subdirectories with AM_CONDITIONAL.
                                                               (line  25)
 * DIST_SUBDIRS <1>:                      Basics of Distribution.
-                                                              (line  41)
-* DVIPS:                                 Texinfo.             (line 135)
-* EMACS:                                 Public Macros.       (line  50)
+                                                              (line  43)
+* DVIPS:                                 Texinfo.             (line 141)
+* EMACS:                                 Public Macros.       (line  58)
 * ETAGSFLAGS:                            Tags.                (line  25)
 * ETAGS_ARGS:                            Tags.                (line  25)
 * EXPECT:                                DejaGnu Tests.       (line  19)
@@ -4458,15 +4514,15 @@ B.2 Variable Index
 * EXTRA_PROGRAMS:                        Conditional Programs.
                                                               (line  15)
 * EXT_LOG_COMPILE:                       Parallel Test Harness.
-                                                              (line  50)
+                                                              (line  52)
 * EXT_LOG_COMPILER:                      Parallel Test Harness.
-                                                              (line  50)
+                                                              (line  52)
 * EXT_LOG_DRIVER:                        Declaring Custom Test Drivers.
                                                               (line   6)
 * EXT_LOG_DRIVER_FLAGS:                  Declaring Custom Test Drivers.
                                                               (line   6)
 * EXT_LOG_FLAGS:                         Parallel Test Harness.
-                                                              (line  50)
+                                                              (line  52)
 * F77:                                   Fortran 77 Support.  (line  16)
 * F77COMPILE:                            Fortran 77 Support.  (line  31)
 * F77LINK:                               How the Linker is Chosen.
@@ -4481,8 +4537,8 @@ B.2 Variable Index
 * FLIBS:                                 Mixing Fortran 77 With C and C++.
                                                               (line  21)
 * FLINK:                                 Fortran 77 Support.  (line  35)
-* GCJ:                                   Public Macros.       (line  88)
-* GCJFLAGS:                              Public Macros.       (line  88)
+* GCJ:                                   Public Macros.       (line  97)
+* GCJFLAGS:                              Public Macros.       (line  97)
 * GCJFLAGS <1>:                          Java Support with gcj.
                                                               (line  16)
 * GCJLINK:                               How the Linker is Chosen.
@@ -4516,19 +4572,19 @@ B.2 Variable Index
 * LINK <1>:                              How the Linker is Chosen.
                                                               (line  17)
 * LISP:                                  Uniform.             (line 102)
-* lispdir:                               Public Macros.       (line  50)
+* lispdir:                               Public Macros.       (line  58)
 * lisp_LISP:                             Emacs Lisp.          (line   6)
 * localstate_DATA:                       Data.                (line   9)
 * LOG_COMPILE:                           Parallel Test Harness.
-                                                              (line  50)
+                                                              (line  52)
 * LOG_COMPILER:                          Parallel Test Harness.
-                                                              (line  50)
+                                                              (line  52)
 * LOG_DRIVER:                            Declaring Custom Test Drivers.
                                                               (line   6)
 * LOG_DRIVER_FLAGS:                      Declaring Custom Test Drivers.
                                                               (line   6)
 * LOG_FLAGS:                             Parallel Test Harness.
-                                                              (line  50)
+                                                              (line  52)
 * LTALLOCA:                              LTLIBOBJS.           (line   6)
 * LTALLOCA <1>:                          LIBOBJS.             (line   6)
 * LTLIBOBJS:                             LTLIBOBJS.           (line   6)
@@ -4536,9 +4592,9 @@ B.2 Variable Index
 * LTLIBRARIES:                           Uniform.             (line 102)
 * MAINTAINERCLEANFILES:                  Clean.               (line  13)
 * MAKE:                                  Subdirectories.      (line  29)
-* MAKEINFO:                              Texinfo.             (line  93)
-* MAKEINFOFLAGS:                         Texinfo.             (line 103)
-* MAKEINFOHTML:                          Texinfo.             (line  99)
+* MAKEINFO:                              Texinfo.             (line  99)
+* MAKEINFOFLAGS:                         Texinfo.             (line 109)
+* MAKEINFOHTML:                          Texinfo.             (line 105)
 * MANS:                                  Uniform.             (line 102)
 * man_MANS:                              Man Pages.           (line   6)
 * maude_AR:                              Program and Library Variables.
@@ -4581,14 +4637,14 @@ B.2 Variable Index
 * maude_RFLAGS:                          Program and Library Variables.
                                                               (line 179)
 * maude_SHORTNAME:                       Program and Library Variables.
-                                                              (line 212)
+                                                              (line 210)
 * maude_SOURCES:                         Program and Library Variables.
                                                               (line  18)
 * maude_UPCFLAGS:                        Program and Library Variables.
                                                               (line 180)
 * maude_YFLAGS:                          Program and Library Variables.
                                                               (line 181)
-* MISSING:                               Public Macros.       (line  99)
+* MISSING:                               Public Macros.       (line 108)
 * MKDIR_P:                               Obsolete Macros.     (line  14)
 * mkdir_p:                               Obsolete Macros.     (line  14)
 * MOSTLYCLEANFILES:                      Clean.               (line  13)
@@ -4649,7 +4705,7 @@ B.2 Variable Index
 * PYTHON_PREFIX:                         Python.              (line  72)
 * PYTHON_VERSION:                        Python.              (line  68)
 * RECHECK_LOGS:                          Parallel Test Harness.
-                                                              (line 117)
+                                                              (line 119)
 * RFLAGS:                                Fortran 77 Support.  (line  25)
 * RUNTEST:                               DejaGnu Tests.       (line  19)
 * RUNTESTDEFAULTFLAGS:                   DejaGnu Tests.       (line  14)
@@ -4663,7 +4719,7 @@ B.2 Variable Index
 * SOURCES <1>:                           Default _SOURCES.    (line   6)
 * SUBDIRS:                               Subdirectories.      (line   8)
 * SUBDIRS <1>:                           Basics of Distribution.
-                                                              (line  41)
+                                                              (line  43)
 * SUFFIXES:                              Suffixes.            (line   6)
 * sysconf_DATA:                          Data.                (line   9)
 * TAGS_DEPENDENCIES:                     Tags.                (line  35)
@@ -4671,24 +4727,24 @@ B.2 Variable Index
 * TESTS:                                 Scripts-based Testsuites.
                                                               (line  86)
 * TESTS <1>:                             Parallel Test Harness.
-                                                              (line  15)
+                                                              (line  12)
 * TESTS_ENVIRONMENT:                     Scripts-based Testsuites.
                                                               (line  86)
 * TEST_EXTENSIONS:                       Parallel Test Harness.
-                                                              (line  38)
+                                                              (line  35)
 * TEST_LOGS:                             Parallel Test Harness.
-                                                              (line  38)
+                                                              (line  35)
 * TEST_SUITE_LOG:                        Parallel Test Harness.
-                                                              (line  15)
-* TEXI2DVI:                              Texinfo.             (line 126)
-* TEXI2PDF:                              Texinfo.             (line 131)
+                                                              (line  12)
+* TEXI2DVI:                              Texinfo.             (line 132)
+* TEXI2PDF:                              Texinfo.             (line 137)
 * TEXINFOS:                              Uniform.             (line 102)
-* TEXINFOS <1>:                          Texinfo.             (line  59)
-* TEXINFO_TEX:                           Texinfo.             (line 139)
+* TEXINFOS <1>:                          Texinfo.             (line  65)
+* TEXINFO_TEX:                           Texinfo.             (line 145)
 * top_distdir:                           The dist Hook.       (line  33)
 * top_distdir <1>:                       Third-Party Makefiles.
                                                               (line  25)
-* UPC:                                   Public Macros.       (line  93)
+* UPC:                                   Public Macros.       (line 102)
 * UPC <1>:                               Unified Parallel C Support.
                                                               (line  15)
 * UPCCOMPILE:                            Unified Parallel C Support.
@@ -4704,16 +4760,16 @@ B.2 Variable Index
 * VALAC:                                 Vala Support.        (line  34)
 * VALAFLAGS:                             Vala Support.        (line  38)
 * VERBOSE:                               Parallel Test Harness.
-                                                              (line  29)
+                                                              (line  26)
 * VERSION:                               Basics of Distribution.
                                                               (line   6)
 * WARNINGS:                              automake Invocation. (line 167)
 * WARNINGS <1>:                          aclocal Options.     (line  91)
-* WITH_DMALLOC:                          Public Macros.       (line 111)
+* WITH_DMALLOC:                          Public Macros.       (line 120)
 * XFAIL_TESTS:                           Scripts-based Testsuites.
                                                               (line  32)
 * XZ_OPT:                                The Types of Distributions.
-                                                              (line  26)
+                                                              (line  24)
 * YACC:                                  Optional.            (line 122)
 * YFLAGS:                                Yacc and Lex.        (line  37)
 
@@ -4757,7 +4813,7 @@ B.3 General Index
 * --help:                                automake Invocation. (line  94)
 * --help <1>:                            aclocal Options.     (line  27)
 * '--help' check:                        List of Automake options.
-                                                              (line 114)
+                                                              (line 126)
 * --help=recursive:                      Nested Packages.     (line  30)
 * --host=HOST:                           Cross-Compilation.   (line  16)
 * --include-deps:                        automake Invocation. (line 102)
@@ -4780,10 +4836,10 @@ B.3 General Index
 * --version:                             automake Invocation. (line 125)
 * --version <1>:                         aclocal Options.     (line  72)
 * '--version' check:                     List of Automake options.
-                                                              (line 114)
+                                                              (line 126)
 * --warnings:                            automake Invocation. (line 129)
 * --warnings <1>:                        aclocal Options.     (line  76)
-* --with-dmalloc:                        Public Macros.       (line 111)
+* --with-dmalloc:                        Public Macros.       (line 120)
 * -a:                                    automake Invocation. (line  41)
 * -c:                                    automake Invocation. (line  70)
 * -f:                                    automake Invocation. (line  75)
@@ -4803,9 +4859,9 @@ B.3 General Index
                                                               (line  38)
 * '.la' suffix, defined:                 Libtool Concept.     (line   6)
 * '.log' files:                          Parallel Test Harness.
-                                                              (line  15)
+                                                              (line  12)
 * '.trs' files:                          Parallel Test Harness.
-                                                              (line  15)
+                                                              (line  12)
 * :copy-in-global-log::                  Log files generation and test results recording.
                                                               (line  44)
 * :recheck::                             Log files generation and test results recording.
@@ -4973,6 +5029,8 @@ B.3 General Index
 * configuration variables, overriding:   Standard Configuration Variables.
                                                               (line   6)
 * Configuration, basics:                 Basic Installation.  (line   6)
+* Configure substitutions in 'TESTS':    Parallel Test Harness.
+                                                              (line  47)
 * 'configure.ac', Hello World:           amhello's configure.ac Setup Explained.
                                                               (line   6)
 * 'configure.ac', scanning:              configure.           (line   6)
@@ -5019,49 +5077,53 @@ B.3 General Index
 * dist <1>:                              Basics of Distribution.
                                                               (line   6)
 * dist-bzip2:                            The Types of Distributions.
-                                                              (line  14)
+                                                              (line  18)
 * dist-bzip2 <1>:                        List of Automake options.
                                                               (line  22)
 * dist-bzip2 <2>:                        List of Automake options.
                                                               (line  22)
 * dist-gzip:                             The Types of Distributions.
-                                                              (line  17)
+                                                              (line  11)
 * dist-hook:                             The dist Hook.       (line   6)
 * dist-hook <1>:                         Extending.           (line  66)
 * dist-lzip:                             The Types of Distributions.
-                                                              (line  21)
+                                                              (line  22)
 * dist-lzip <1>:                         List of Automake options.
                                                               (line  25)
 * dist-lzip <2>:                         List of Automake options.
                                                               (line  25)
 * dist-shar:                             The Types of Distributions.
-                                                              (line  24)
+                                                              (line  45)
 * dist-shar <1>:                         List of Automake options.
-                                                              (line  28)
+                                                              (line  36)
 * dist-shar <2>:                         List of Automake options.
-                                                              (line  28)
+                                                              (line  34)
 * dist-tarZ:                             The Types of Distributions.
-                                                              (line  38)
+                                                              (line  39)
 * dist-tarZ <1>:                         List of Automake options.
-                                                              (line  34)
+                                                              (line  41)
 * dist-tarZ <2>:                         List of Automake options.
-                                                              (line  34)
+                                                              (line  39)
 * dist-xz:                               The Types of Distributions.
-                                                              (line  32)
+                                                              (line  30)
+* dist-xz <1>:                           List of Automake options.
+                                                              (line  28)
+* dist-xz <2>:                           List of Automake options.
+                                                              (line  28)
 * dist-zip:                              The Types of Distributions.
-                                                              (line  35)
+                                                              (line  33)
 * dist-zip <1>:                          List of Automake options.
                                                               (line  31)
 * dist-zip <2>:                          List of Automake options.
                                                               (line  31)
-* distcheck:                             Creating amhello.    (line  99)
+* distcheck:                             Creating amhello.    (line 100)
 * distcheck <1>:                         Checking the Distribution.
                                                               (line   6)
 * 'distcheck' better than 'dist':        Preparing Distributions.
                                                               (line  10)
-* 'distcheck' example:                   Creating amhello.    (line  99)
+* 'distcheck' example:                   Creating amhello.    (line 100)
 * distcheck-hook:                        Checking the Distribution.
-                                                              (line  45)
+                                                              (line  48)
 * distclean:                             Standard Targets.    (line  29)
 * distclean <1>:                         Extending.           (line  41)
 * distclean <2>:                         Errors with distclean.
@@ -5071,7 +5133,7 @@ B.3 General Index
 * distclean-local:                       Clean.               (line  15)
 * distclean-local <1>:                   Extending.           (line  41)
 * distcleancheck:                        Checking the Distribution.
-                                                              (line  60)
+                                                              (line  63)
 * distdir:                               Third-Party Makefiles.
                                                               (line  25)
 * Distinction between errors and failures in testsuites: Generalities about Testing.
@@ -5079,18 +5141,18 @@ B.3 General Index
 * Distributions, preparation:            Preparing Distributions.
                                                               (line   6)
 * distuninstallcheck:                    Checking the Distribution.
-                                                              (line  96)
+                                                              (line  99)
 * 'dist_' and 'nobase_':                 Alternative.         (line  29)
 * 'dist_' and 'notrans_':                Man Pages.           (line  63)
 * 'DIST_SUBDIRS', explained:             SUBDIRS vs DIST_SUBDIRS.
                                                               (line   6)
-* 'dmalloc', support for:                Public Macros.       (line 111)
-* dvi:                                   Texinfo.             (line  19)
+* 'dmalloc', support for:                Public Macros.       (line 120)
+* dvi:                                   Texinfo.             (line  25)
 * dvi <1>:                               Extending.           (line  41)
 * DVI output using Texinfo:              Texinfo.             (line   6)
 * dvi-local:                             Extending.           (line  41)
 * E-mail, bug reports:                   Introduction.        (line  30)
-* 'EDITION' Texinfo flag:                Texinfo.             (line  29)
+* 'EDITION' Texinfo flag:                Texinfo.             (line  35)
 * else:                                  Usage of Conditionals.
                                                               (line  36)
 * Empty libraries:                       A Library.           (line  48)
@@ -5138,7 +5200,7 @@ B.3 General Index
 * file names, limitations on:            Limitations on File Names.
                                                               (line   6)
 * filename-length-max=99:                List of Automake options.
-                                                              (line  37)
+                                                              (line  44)
 * Files distributed with Automake:       automake Invocation. (line  39)
 * First line of Makefile.am:             General Operation.   (line  74)
 * Flag variables, ordering:              Flag Variables Ordering.
@@ -5188,8 +5250,8 @@ B.3 General Index
 * 'HEADERS', installation directories:   Headers.             (line   6)
 * Hello World example:                   Hello World.         (line   6)
 * hook targets:                          Extending.           (line  66)
-* HP-UX 10, 'lex' problems:              Public Macros.       (line  83)
-* html:                                  Texinfo.             (line  19)
+* HP-UX 10, 'lex' problems:              Public Macros.       (line  92)
+* html:                                  Texinfo.             (line  25)
 * html <1>:                              Extending.           (line  41)
 * HTML output using Texinfo:             Texinfo.             (line   6)
 * html-local:                            Extending.           (line  41)
@@ -5204,8 +5266,10 @@ B.3 General Index
 * Including 'Makefile' fragment:         Include.             (line   6)
 * indentation in Makefile.am:            General Operation.   (line  33)
 * info:                                  List of Automake options.
-                                                              (line  78)
+                                                              (line  90)
 * info <1>:                              Extending.           (line  41)
+* info-in-builddir:                      List of Automake options.
+                                                              (line  53)
 * info-local:                            Extending.           (line  41)
 * install:                               Standard Targets.    (line  18)
 * install <1>:                           The Two Parts of Install.
@@ -5223,7 +5287,7 @@ B.3 General Index
 * install-data-local:                    Extending Installation.
                                                               (line   9)
 * install-data-local <1>:                Extending.           (line  41)
-* install-dvi:                           Texinfo.             (line  19)
+* install-dvi:                           Texinfo.             (line  25)
 * install-dvi <1>:                       Extending.           (line  41)
 * install-dvi-local:                     Extending.           (line  41)
 * install-exec:                          Two-Part Install.    (line  16)
@@ -5234,23 +5298,23 @@ B.3 General Index
 * install-exec-local:                    Extending Installation.
                                                               (line   9)
 * install-exec-local <1>:                Extending.           (line  41)
-* install-html:                          Texinfo.             (line  19)
+* install-html:                          Texinfo.             (line  25)
 * install-html <1>:                      Extending.           (line  41)
 * install-html-local:                    Extending.           (line  41)
-* install-info:                          Texinfo.             (line  79)
+* install-info:                          Texinfo.             (line  85)
 * install-info <1>:                      List of Automake options.
-                                                              (line  78)
+                                                              (line  90)
 * install-info <2>:                      Extending.           (line  41)
-* 'install-info' target:                 Texinfo.             (line  79)
+* 'install-info' target:                 Texinfo.             (line  85)
 * install-info-local:                    Extending.           (line  41)
 * install-man:                           Man Pages.           (line  32)
 * install-man <1>:                       List of Automake options.
-                                                              (line  84)
+                                                              (line  96)
 * 'install-man' target:                  Man Pages.           (line  32)
-* install-pdf:                           Texinfo.             (line  19)
+* install-pdf:                           Texinfo.             (line  25)
 * install-pdf <1>:                       Extending.           (line  41)
 * install-pdf-local:                     Extending.           (line  41)
-* install-ps:                            Texinfo.             (line  19)
+* install-ps:                            Texinfo.             (line  25)
 * install-ps <1>:                        Extending.           (line  41)
 * install-ps-local:                      Extending.           (line  41)
 * install-strip:                         Standard Targets.    (line  21)
@@ -5283,11 +5347,11 @@ B.3 General Index
 * Java to native code, compilation:      Java Support with gcj.
                                                               (line   6)
 * lazy test execution:                   Parallel Test Harness.
-                                                              (line 117)
+                                                              (line 119)
 * 'LDADD' and '-l':                      Linking.             (line  70)
 * 'LDFLAGS' and 'AM_LDFLAGS':            Flag Variables Ordering.
                                                               (line  20)
-* 'lex' problems with HP-UX 10:          Public Macros.       (line  83)
+* 'lex' problems with HP-UX 10:          Public Macros.       (line  92)
 * 'lex', multiple lexers:                Yacc and Lex.        (line  68)
 * 'LFLAGS' and 'AM_LFLAGS':              Flag Variables Ordering.
                                                               (line  20)
@@ -5336,12 +5400,12 @@ B.3 General Index
 * 'make distclean', diagnostic:          Errors with distclean.
                                                               (line   6)
 * 'make distcleancheck':                 Checking the Distribution.
-                                                              (line  60)
+                                                              (line  63)
 * 'make distuninstallcheck':             Checking the Distribution.
-                                                              (line  96)
+                                                              (line  99)
 * 'make install' support:                Install.             (line   6)
 * 'make installcheck', testing '--help' and '--version': List of Automake options.
-                                                              (line 114)
+                                                              (line 126)
 * Make rules, overriding:                General Operation.   (line  46)
 * Make targets, overriding:              General Operation.   (line  46)
 * 'Makefile' fragment, including:        Include.             (line   6)
@@ -5351,7 +5415,7 @@ B.3 General Index
 * Man page renaming, avoiding:           Man Pages.           (line  54)
 * 'MANS' primary, defined:               Man Pages.           (line   6)
 * many outputs, rules with:              Multiple Outputs.    (line   6)
-* 'mdate-sh':                            Texinfo.             (line  29)
+* 'mdate-sh':                            Texinfo.             (line  35)
 * MinGW cross-compilation example:       Cross-Compilation.   (line  25)
 * 'missing', purpose:                    maintainer-mode.     (line   9)
 * Mixed language example:                Mixing Fortran 77 With C and C++.
@@ -5372,30 +5436,30 @@ B.3 General Index
 * Multiple 'yacc' parsers:               Yacc and Lex.        (line  68)
 * Nested packages:                       Nested Packages.     (line   6)
 * Nesting packages:                      Subpackages.         (line   6)
-* no-define:                             Public Macros.       (line  45)
+* no-define:                             Public Macros.       (line  52)
 * no-define <1>:                         List of Automake options.
-                                                              (line  46)
+                                                              (line  58)
 * no-dependencies:                       Dependencies.        (line  34)
 * no-dependencies <1>:                   List of Automake options.
-                                                              (line  51)
+                                                              (line  63)
 * no-dist:                               List of Automake options.
-                                                              (line  58)
+                                                              (line  70)
 * no-dist-gzip:                          List of Automake options.
-                                                              (line  62)
+                                                              (line  74)
 * no-dist-gzip <1>:                      List of Automake options.
-                                                              (line  62)
+                                                              (line  74)
 * no-exeext:                             List of Automake options.
-                                                              (line  65)
-* no-installinfo:                        Texinfo.             (line  79)
+                                                              (line  77)
+* no-installinfo:                        Texinfo.             (line  85)
 * no-installinfo <1>:                    List of Automake options.
-                                                              (line  75)
-* 'no-installinfo' option:               Texinfo.             (line  79)
+                                                              (line  87)
+* 'no-installinfo' option:               Texinfo.             (line  85)
 * no-installman:                         Man Pages.           (line  32)
 * no-installman <1>:                     List of Automake options.
-                                                              (line  81)
+                                                              (line  93)
 * 'no-installman' option:                Man Pages.           (line  32)
 * no-texinfo.tex:                        List of Automake options.
-                                                              (line  91)
+                                                              (line 103)
 * 'nobase_' and 'dist_' or 'nodist_':    Alternative.         (line  29)
 * 'nobase_' prefix:                      Alternative.         (line  23)
 * 'nodist_' and 'nobase_':               Alternative.         (line  29)
@@ -5404,7 +5468,7 @@ B.3 General Index
 * Non-GNU packages:                      Strictness.          (line   6)
 * Non-standard targets:                  General Operation.   (line  12)
 * nostdinc:                              List of Automake options.
-                                                              (line  87)
+                                                              (line  99)
 * 'notrans_' and 'dist_' or 'nodist_':   Man Pages.           (line  63)
 * 'notrans_' prefix:                     Man Pages.           (line  54)
 * 'OBJCFLAGS' and 'AM_OBJCFLAGS':        Flag Variables Ordering.
@@ -5419,9 +5483,9 @@ B.3 General Index
 * obsolete macros:                       Obsolete Macros.     (line   6)
 * optimized build, example:              VPATH Builds.        (line  46)
 * Option, '--warnings=CATEGORY':         List of Automake options.
-                                                              (line 199)
+                                                              (line 208)
 * Option, '-WCATEGORY':                  List of Automake options.
-                                                              (line 199)
+                                                              (line 208)
 * Option, 'check-news':                  List of Automake options.
                                                               (line  14)
 * Option, 'dejagnu':                     List of Automake options.
@@ -5431,61 +5495,65 @@ B.3 General Index
 * Option, 'dist-lzip':                   List of Automake options.
                                                               (line  25)
 * Option, 'dist-shar':                   List of Automake options.
-                                                              (line  28)
-* Option, 'dist-tarZ':                   List of Automake options.
                                                               (line  34)
+* Option, 'dist-tarZ':                   List of Automake options.
+                                                              (line  39)
+* Option, 'dist-xz':                     List of Automake options.
+                                                              (line  28)
 * Option, 'dist-zip':                    List of Automake options.
                                                               (line  31)
 * Option, 'filename-length-max=99':      List of Automake options.
-                                                              (line  37)
+                                                              (line  44)
 * Option, 'foreign':                     List of Automake options.
                                                               (line   9)
 * Option, 'gnits':                       List of Automake options.
                                                               (line   9)
 * Option, 'gnu':                         List of Automake options.
                                                               (line   9)
+* Option, 'info-in-builddir':            List of Automake options.
+                                                              (line  53)
 * Option, 'no-define':                   List of Automake options.
-                                                              (line  46)
-* Option, 'no-dependencies':             List of Automake options.
-                                                              (line  51)
-* Option, 'no-dist':                     List of Automake options.
                                                               (line  58)
+* Option, 'no-dependencies':             List of Automake options.
+                                                              (line  63)
+* Option, 'no-dist':                     List of Automake options.
+                                                              (line  70)
 * Option, 'no-dist-gzip':                List of Automake options.
-                                                              (line  62)
+                                                              (line  74)
 * Option, 'no-exeext':                   List of Automake options.
-                                                              (line  65)
-* Option, 'no-installinfo':              Texinfo.             (line  79)
+                                                              (line  77)
+* Option, 'no-installinfo':              Texinfo.             (line  85)
 * Option, 'no-installinfo' <1>:          List of Automake options.
-                                                              (line  75)
+                                                              (line  87)
 * Option, 'no-installman':               Man Pages.           (line  32)
 * Option, 'no-installman' <1>:           List of Automake options.
-                                                              (line  81)
+                                                              (line  93)
 * Option, 'no-texinfo.tex':              List of Automake options.
-                                                              (line  91)
+                                                              (line 103)
 * Option, 'nostdinc':                    List of Automake options.
-                                                              (line  87)
-* Option, 'parallel-tests':              List of Automake options.
                                                               (line  99)
+* Option, 'parallel-tests':              List of Automake options.
+                                                              (line 111)
 * Option, 'readme-alpha':                List of Automake options.
-                                                              (line 105)
+                                                              (line 117)
 * Option, 'serial-tests':                List of Automake options.
-                                                              (line  95)
+                                                              (line 107)
 * Option, 'tar-pax':                     List of Automake options.
-                                                              (line 147)
+                                                              (line 156)
 * Option, 'tar-ustar':                   List of Automake options.
-                                                              (line 147)
+                                                              (line 156)
 * Option, 'tar-v7':                      List of Automake options.
-                                                              (line 147)
+                                                              (line 156)
 * Option, VERSION:                       List of Automake options.
-                                                              (line 194)
+                                                              (line 203)
 * Option, warnings:                      List of Automake options.
-                                                              (line 199)
+                                                              (line 208)
 * Options, 'aclocal':                    aclocal Options.     (line   6)
 * Options, 'automake':                   automake Invocation. (line  37)
 * Options, 'std-options':                List of Automake options.
-                                                              (line 114)
+                                                              (line 126)
 * Options, 'subdir-objects':             List of Automake options.
-                                                              (line 135)
+                                                              (line 147)
 * Ordering flag variables:               Flag Variables Ordering.
                                                               (line   6)
 * Overriding make rules:                 General Operation.   (line  46)
@@ -5494,17 +5562,17 @@ B.3 General Index
 * overriding rules:                      Extending.           (line  26)
 * overriding semantics:                  Extending.           (line  26)
 * 'PACKAGE', directory:                  Uniform.             (line  19)
-* 'PACKAGE', prevent definition:         Public Macros.       (line  45)
+* 'PACKAGE', prevent definition:         Public Macros.       (line  52)
 * Packages, nested:                      Nested Packages.     (line   6)
 * Packages, preparation:                 Preparing Distributions.
                                                               (line   6)
 * Parallel build trees:                  VPATH Builds.        (line   6)
 * parallel-tests:                        List of Automake options.
-                                                              (line  99)
+                                                              (line 111)
 * Path stripping, avoiding:              Alternative.         (line  23)
 * pax format:                            List of Automake options.
-                                                              (line 147)
-* pdf:                                   Texinfo.             (line  19)
+                                                              (line 156)
+* pdf:                                   Texinfo.             (line  25)
 * pdf <1>:                               Extending.           (line  41)
 * PDF output using Texinfo:              Texinfo.             (line   6)
 * pdf-local:                             Extending.           (line  41)
@@ -5541,7 +5609,7 @@ B.3 General Index
 * 'prog_LDADD', defined:                 Linking.             (line  12)
 * Proxy 'Makefile' for third-party packages: Third-Party Makefiles.
                                                               (line 128)
-* ps:                                    Texinfo.             (line  19)
+* ps:                                    Texinfo.             (line  25)
 * ps <1>:                                Extending.           (line  41)
 * PS output using Texinfo:               Texinfo.             (line   6)
 * ps-local:                              Extending.           (line  41)
@@ -5550,12 +5618,12 @@ B.3 General Index
                                                               (line   6)
 * read-only source tree:                 VPATH Builds.        (line  89)
 * readme-alpha:                          List of Automake options.
-                                                              (line 105)
+                                                              (line 117)
 * 'README-alpha':                        Gnits.               (line  42)
 * rebuild rules:                         Rebuilding.          (line   6)
 * rebuild rules <1>:                     CVS.                 (line   9)
 * recheck:                               Parallel Test Harness.
-                                                              (line 129)
+                                                              (line 131)
 * Recognized macros by Automake:         Optional.            (line   6)
 * Recursive operation of Automake:       General Operation.   (line  58)
 * recursive targets and third-party 'Makefile's: Third-Party Makefiles.
@@ -5592,7 +5660,7 @@ B.3 General Index
 * serial number and '--install':         aclocal Options.     (line  38)
 * serial numbers in macros:              Serials.             (line   6)
 * serial-tests:                          List of Automake options.
-                                                              (line  95)
+                                                              (line 107)
 * 'serial-tests', Using:                 Serial Test Harness. (line   6)
 * Shared libraries, support for:         A Shared Library.    (line   6)
 * Silencing 'make':                      Silencing Make.      (line   6)
@@ -5608,7 +5676,7 @@ B.3 General Index
 * Special Automake comment:              General Operation.   (line  68)
 * Staged installation:                   DESTDIR.             (line  14)
 * std-options:                           List of Automake options.
-                                                              (line 114)
+                                                              (line 126)
 * Strictness, command line:              automake Invocation. (line  37)
 * Strictness, defined:                   Strictness.          (line  10)
 * Strictness, 'foreign':                 Strictness.          (line  10)
@@ -5616,7 +5684,7 @@ B.3 General Index
 * Strictness, 'gnu':                     Strictness.          (line  10)
 * su, before 'make install':             Basic Installation.  (line  49)
 * subdir-objects:                        List of Automake options.
-                                                              (line 135)
+                                                              (line 147)
 * Subdirectories, building conditionally: Conditional Subdirectories.
                                                               (line   6)
 * Subdirectories, configured conditionally: Unconfigured Subdirectories.
@@ -5652,14 +5720,14 @@ B.3 General Index
 * tags:                                  Tags.                (line   9)
 * 'TAGS' support:                        Tags.                (line   6)
 * 'tar' formats:                         List of Automake options.
-                                                              (line 147)
+                                                              (line 156)
 * tar-pax:                               List of Automake options.
-                                                              (line 147)
+                                                              (line 156)
 * tar-ustar:                             List of Automake options.
-                                                              (line 147)
+                                                              (line 156)
 * tar-v7:                                List of Automake options.
-                                                              (line 147)
-* Target, 'install-info':                Texinfo.             (line  79)
+                                                              (line 156)
+* Target, 'install-info':                Texinfo.             (line  85)
 * Target, 'install-man':                 Man Pages.           (line  32)
 * test case:                             Generalities about Testing.
                                                               (line  11)
@@ -5670,7 +5738,7 @@ B.3 General Index
 * test harness:                          Generalities about Testing.
                                                               (line  18)
 * test metadata:                         Parallel Test Harness.
-                                                              (line  15)
+                                                              (line  12)
 * test pass:                             Generalities about Testing.
                                                               (line  25)
 * Test result, registering:              Log files generation and test results recording.
@@ -5684,11 +5752,11 @@ B.3 General Index
                                                               (line  18)
 * Testsuite progress on console:         Scripts-based Testsuites.
                                                               (line  45)
-* Texinfo flag, 'EDITION':               Texinfo.             (line  29)
-* Texinfo flag, 'UPDATED':               Texinfo.             (line  29)
-* Texinfo flag, 'UPDATED-MONTH':         Texinfo.             (line  29)
-* Texinfo flag, 'VERSION':               Texinfo.             (line  29)
-* 'texinfo.tex':                         Texinfo.             (line  64)
+* Texinfo flag, 'EDITION':               Texinfo.             (line  35)
+* Texinfo flag, 'UPDATED':               Texinfo.             (line  35)
+* Texinfo flag, 'UPDATED-MONTH':         Texinfo.             (line  35)
+* Texinfo flag, 'VERSION':               Texinfo.             (line  35)
+* 'texinfo.tex':                         Texinfo.             (line  70)
 * 'TEXINFOS' primary, defined:           Texinfo.             (line   6)
 * third-party files and CVS:             CVS.                 (line 167)
 * Third-party packages, interfacing with: Third-Party Makefiles.
@@ -5712,25 +5780,25 @@ B.3 General Index
 * uninstall-hook:                        Extending.           (line  66)
 * uninstall-local:                       Extending.           (line  41)
 * Unit tests:                            Parallel Test Harness.
-                                                              (line 153)
+                                                              (line 155)
 * Unpacking:                             Basic Installation.  (line  27)
 * 'UPCFLAGS' and 'AM_UPCFLAGS':          Flag Variables Ordering.
                                                               (line  20)
-* 'UPDATED' Texinfo flag:                Texinfo.             (line  29)
-* 'UPDATED-MONTH' Texinfo flag:          Texinfo.             (line  29)
+* 'UPDATED' Texinfo flag:                Texinfo.             (line  35)
+* 'UPDATED-MONTH' Texinfo flag:          Texinfo.             (line  35)
 * Use Cases for the GNU Build System:    Use Cases.           (line   6)
 * user variables:                        User Variables.      (line   6)
 * Using 'aclocal':                       configure.           (line   6)
 * ustar format:                          List of Automake options.
-                                                              (line 147)
+                                                              (line 156)
 * v7 'tar' format:                       List of Automake options.
-                                                              (line 147)
+                                                              (line 156)
 * Vala Support:                          Vala Support.        (line   6)
 * variables, conflicting:                Extending.           (line  14)
 * Variables, overriding:                 General Operation.   (line  51)
 * variables, reserved for the user:      User Variables.      (line   6)
-* 'VERSION' Texinfo flag:                Texinfo.             (line  29)
-* 'VERSION', prevent definition:         Public Macros.       (line  45)
+* 'VERSION' Texinfo flag:                Texinfo.             (line  35)
+* 'VERSION', prevent definition:         Public Macros.       (line  52)
 * 'version.m4', example:                 Rebuilding.          (line  12)
 * 'version.sh', example:                 Rebuilding.          (line  12)
 * versioned binaries, installing:        Extending.           (line  86)

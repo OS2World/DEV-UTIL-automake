@@ -32,9 +32,8 @@ check_PROGRAMS = a c d
 check_SCRIPTS = b
 EXTRA_DIST = $(check_SCRIPTS)
 
-.PHONY: print-xfail-tests
-print-xfail-tests:
-	@echo BEG: $(XFAIL_TESTS) :END
+expect-xfail-tests:
+	is $(XFAIL_TESTS) == a$(EXEEXT) b c$(EXEEXT) d$(EXEEXT)
 END
 
 cat > b <<'END'
@@ -60,9 +59,8 @@ $AUTOMAKE -a
 
 ./configure
 $MAKE check
-EXEEXT=.bin $MAKE -e print-xfail-tests >stdout || {  cat stdout; exit 1; }
-cat stdout
-$FGREP 'BEG: a.bin b c.bin d.bin :END' stdout
+run_make expect-xfail-tests
+run_make expect-xfail-tests EXEEXT=.bin
 
 $MAKE distcheck
 

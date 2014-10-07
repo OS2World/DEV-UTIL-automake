@@ -1,7 +1,7 @@
-This is automake.info, produced by makeinfo version 5.1 from
+This is automake.info, produced by makeinfo version 5.2 from
 automake.texi.
 
-This manual is for GNU Automake (version 1.13.1, 1 January 2013), a
+This manual is for GNU Automake (version 1.14.1, 6 November 2013), a
 program that creates GNU standards-compliant Makefiles from template
 files.
 
@@ -31,7 +31,7 @@ File: automake.info,  Node: Top,  Next: Introduction,  Up: (dir)
 GNU Automake
 ************
 
-This manual is for GNU Automake (version 1.13.1, 1 January 2013), a
+This manual is for GNU Automake (version 1.14.1, 6 November 2013), a
 program that creates GNU standards-compliant Makefiles from template
 files.
 
@@ -271,7 +271,7 @@ Support for test suites
 Simple Tests
 
 * Scripts-based Testsuites::    Automake-specific concepts and terminology
-* Serial Test Harness::         Older (and obsolescent) serial test harness
+* Serial Test Harness::         Older (and discouraged) serial test harness
 * Parallel Test Harness::       Generic concurrent test harness
 
 Using the TAP test protocol
@@ -1282,6 +1282,7 @@ follows:
      ~/amhello % autoreconf --install
      configure.ac: installing './install-sh'
      configure.ac: installing './missing'
+     configure.ac: installing './compile'
      src/Makefile.am: installing './depcomp'
 
    At this point the build system is complete.
@@ -3253,24 +3254,31 @@ File: automake.info,  Node: Public Macros,  Next: Obsolete Macros,  Up: Macros
      Runs many macros required for proper operation of the generated
      Makefiles.
 
-     'AM_INIT_AUTOMAKE' is called with a single argument: a
+     Today, 'AM_INIT_AUTOMAKE' is called with a single argument: a
      space-separated list of Automake options that should be applied to
      every 'Makefile.am' in the tree.  The effect is as if each option
      were listed in 'AUTOMAKE_OPTIONS' (*note Options::).
 
-     This macro could once (before Automake 1.13) also be called in the
-     _now obsolete and completely unsupported_ form
+     This macro can also be called in another, _deprecated_ form:
      'AM_INIT_AUTOMAKE(PACKAGE, VERSION, [NO-DEFINE])'.  In this form,
-     there were two required arguments: the package and the version
-     number.
+     there are two required arguments: the package and the version
+     number.  This usage is mostly obsolete because the PACKAGE and
+     VERSION can be obtained from Autoconf's 'AC_INIT' macro.  However,
+     differently from what happens for 'AC_INIT' invocations, this
+     'AM_INIT_AUTOMAKE' invocation supports shell variables' expansions
+     in the 'PACKAGE' and 'VERSION' arguments, and this can be still be
+     useful in some selected situations.  Our hope is that future
+     Autoconf versions will improve their support for package versions
+     defined dynamically at configure runtime; when (and if) this
+     happens, support for the two-args 'AM_INIT_AUTOMAKE' invocation
+     will likely be removed from Automake.
 
      If your 'configure.ac' has:
 
           AC_INIT([src/foo.c])
           AM_INIT_AUTOMAKE([mumble], [1.5])
 
-     you must modernize it as follows in order to make it work with
-     Automake 1.13 or later:
+     you should modernize it as follows:
 
           AC_INIT([mumble], [1.5])
           AC_CONFIG_SRCDIR([src/foo.c])
@@ -3289,8 +3297,9 @@ File: automake.info,  Node: Public Macros,  Next: Obsolete Macros,  Up: Macros
      explicitly).
 
      By default this macro 'AC_DEFINE''s 'PACKAGE' and 'VERSION'.  This
-     can be avoided by passing the 'no-define' option:
-          AM_INIT_AUTOMAKE([gnits 1.5 no-define dist-bzip2])
+     can be avoided by passing the 'no-define' option (*note List of
+     Automake options::):
+          AM_INIT_AUTOMAKE([no-define ...])
 
 'AM_PATH_LISPDIR'
      Searches for the program 'emacs', and, if found, sets the output
@@ -3320,10 +3329,11 @@ File: automake.info,  Node: Public Macros,  Next: Obsolete Macros,  Up: Macros
      set 'CCAS', and will also set 'CCASFLAGS' if required.
 
 'AM_PROG_CC_C_O'
-     This is like 'AC_PROG_CC_C_O', but it generates its results in the
-     manner required by Automake.  You must use this instead of
-     'AC_PROG_CC_C_O' when you need this functionality, that is, when
-     using per-target flags or subdir-objects with C sources.
+     This is an obsolescent macro that checks that the C compiler
+     supports the '-c' and '-o' options together.  Note that, since
+     Automake 1.14, the 'AC_PROG_CC' is rewritten to implement such
+     checks itself, and thus the explicit use of 'AM_PROG_CC_C_O' should
+     no longer be required.
 
 'AM_PROG_LEX'
      Like 'AC_PROG_LEX' (*note Particular Program Checks:
@@ -3384,7 +3394,7 @@ automatically (*note Using 'autoupdate' to Modernize 'configure.ac':
      'AM_PROG_MKDIR_P' macro in your 'configure.ac', or its provided
      variable '$(mkdir_p)' in your 'Makefile.am', you are advised to
      switch ASAP to the more modern Autoconf-provided interface instead;
-     both the macro and the variable _will be removed_ in the next major
+     both the macro and the variable might be removed in a future major
      Automake release.
 
 
@@ -4882,9 +4892,7 @@ libraries differ.
      file like 'sample.c' will be compiled to produce 'sample.o'.
      However, if the program's '_CFLAGS' variable is set, then the
      object file will be named, for instance, 'maude-sample.o'.  (See
-     also *note Renamed Objects::.)  The use of per-target compilation
-     flags with C sources requires that the macro 'AM_PROG_CC_C_O' be
-     called from 'configure.ac'.
+     also *note Renamed Objects::).
 
      In compilations with per-target flags, the ordinary 'AM_' form of
      the flags variable is _not_ automatically included in the
@@ -5235,7 +5243,7 @@ latter is a user variable and the former is intended for the
 rebuild rule for distributed Yacc and Lex sources are only used when
 'maintainer-mode' is enabled, or when the files have been erased.
 
-   When 'lex' or 'yacc' sources are used, 'automake -i' automatically
+   When 'lex' or 'yacc' sources are used, 'automake -a' automatically
 installs an auxiliary program called 'ylwrap' in your package (*note
 Auxiliary Programs::).  This program is used by the build rules to
 rename the output of these tools, and makes it possible to include
@@ -6391,11 +6399,11 @@ File: automake.info,  Node: Java,  Next: Python,  Prev: Libtool,  Up: Other GNU 
 Automake provides some minimal support for Java bytecode compilation
 with the 'JAVA' primary (in addition to the support for compiling Java
 to native machine code; *note Java Support with gcj::).  Note however
-that _the interface and most features described here are deprecated_;
-the next automake release will strive to provide a better and cleaner
+that _the interface and most features described here are deprecated_.
+Future Automake releases will strive to provide a better and cleaner
 interface, which however _won't be backward-compatible_; the present
-interface will probably be removed altogether in future automake
-releases (1.13 or later), so don't use it in new code.
+interface will probably be removed altogether some time after the
+introduction of the new interface (if that ever materializes).
 
    Any '.java' files listed in a '_JAVA' variable will be compiled with
 'JAVAC' at build time.  By default, '.java' files are not included in
@@ -6578,8 +6586,9 @@ File: automake.info,  Node: Texinfo,  Next: Man Pages,  Up: Documentation
 If the current directory contains Texinfo source, you must declare it
 with the 'TEXINFOS' primary.  Generally Texinfo files are converted into
 info, and thus the 'info_TEXINFOS' variable is most commonly used here.
-Any Texinfo source file must end in the '.texi', '.txi', or '.texinfo'
-extension.  We recommend '.texi' for new manuals.
+Any Texinfo source file should have the '.texi' extension.  Automake
+also accepts '.txi' or '.texinfo' extensions, but their use is
+discouraged now, and will elicit runtime warnings.
 
    Automake generates rules to build '.info', '.dvi', '.ps', '.pdf' and
 '.html' files from your Texinfo sources.  Following the GNU Coding
@@ -6587,6 +6596,11 @@ Standards, only the '.info' files are built by 'make all' and installed
 by 'make install' (unless you use 'no-installinfo', see below).
 Furthermore, '.info' files are automatically distributed so that Texinfo
 is not a prerequisite for installing your package.
+
+   It is worth noting that, contrary to what happens with the other
+formats, the generated '.info' files are by default placed in 'srcdir'
+rather than in the 'builddir'.  This can be changed with the
+'info-in-builddir' option.
 
    Other documentation formats can be built on request by 'make dvi',
 'make ps', 'make pdf' and 'make html', and they can be installed with
@@ -7046,7 +7060,9 @@ the 'EXTRA_DIST' variable.  You can mention files from subdirectories in
 entire directory will be recursively copied into the distribution.
 Please note that this will also copy _everything_ in the directory,
 including, e.g., Subversion's '.svn' private directories or CVS/RCS
-version control files.  We recommend against using this feature.
+version control files; thus we recommend against using this feature
+as-is.  However, you can use the 'dist-hook' feature to ameliorate the
+problem; *note The dist Hook::.
 
    If you define 'SUBDIRS', Automake will recursively include the
 subdirectories in the distribution.  If 'SUBDIRS' is defined
@@ -7158,9 +7174,12 @@ supply additional flags to 'configure', define them in the
 'AM_DISTCHECK_CONFIGURE_FLAGS' variable in your top-level 'Makefile.am'.
 The user can still extend or override the flags provided there by
 defining the 'DISTCHECK_CONFIGURE_FLAGS' variable, on the command line
-when invoking 'make'.
+when invoking 'make'.  It's worth nothing that 'make distcheck' needs
+complete control over the 'configure' options '--srcdir' and '--prefix',
+so those options cannot be overridden by 'AM_DISTCHECK_CONFIGURE_FLAGS'
+nor by 'DISTCHECK_CONFIGURE_FLAGS'.
 
-   Still, developers are encouraged to strive to make their code
+   Also note that developers are encouraged to strive to make their code
 buildable without requiring any special configure option; thus, in
 general, you shouldn't define 'AM_DISTCHECK_CONFIGURE_FLAGS'.  However,
 there might be few scenarios in which the use of this variable is

@@ -63,12 +63,15 @@ $MAKE
 test -f a.h.in
 test -f a.h
 
+# We might need to grep the output of GNU make for error messages.
+LANG=C LANGUAGE=C LC_ALL=C
+export LANG LANGUAGE LC_ALL
+
 ocwd=$(pwd)
 for x in b c; do
   test $x = b || cd sub
   rm -f $x.h.in
-  $MAKE $x.h.in 2>stderr && { cat stderr >&2; exit 1; }
-  cat stderr >&2
+  run_make -E -e FAIL $x.h.in
   test ! -f $x.h.in
   if using_gmake; then
     grep "No rule to make target [\`\"']$x\.h\.in[\`\"']" stderr
