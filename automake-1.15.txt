@@ -1,0 +1,30 @@
+                          Upload Information Template for Hobbes.nmsu.edu
+                          ===============================================
+
+        Archive Filename: automake-1.15.zip
+       Short Description: automake v1.15 for OS/2
+        Long Description: automake v1.15 for OS/2.
+This is Automake, a Makefile generator.  It was inspired by the 4.4BSD
+make and include files, but aims to be portable and to conform to the
+GNU Coding Standards for Makefile variables and targets.
+
+      Proposed directory
+           for placement: /pub/os2/dev/util
+
+               Your name: KO Myung-Hun
+           Email address: komh@chollian.net
+    Program contact name: (same)
+   Program contact email: (same)
+             Program URL: https://github.com/komh/automake-os2
+
+      Would you like the
+   contact email address
+    included in listings? yes
+
+Operating System/Version: 
+ Additional requirements: Perl v5.8.0+, autoconf v2.69+, GNU M4 v1.4.13+
+
+                Replaces: (none)
+
+
+
